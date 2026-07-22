@@ -437,10 +437,19 @@
 </div>
 <div id="map-error"></div>
 
+<script src="config.js"></script>
 <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoibW9saXM3MjYiLCJhIjoiY21ydmJqanpyMGs4ajM2b2xhaWdmeWxpOCJ9.H3Z_AIsbUY7nrBHAjpwCgA';
+    if (!window.APP_CONFIG?.MAPBOX_TOKEN || window.APP_CONFIG.MAPBOX_TOKEN.includes('YOUR_')) {
+        document.addEventListener('DOMContentLoaded', () => {
+            const el = document.getElementById('map-error');
+            el.innerHTML = '<strong>Missing config</strong>Copy <code>config.example.js</code> to <code>config.js</code> and add your Mapbox and Google API keys.';
+            el.classList.add('visible');
+        });
+    }
 
-    const GOOGLE_API_KEY = 'AIzaSyBHC2qFliSP-yoebniFTlm9kih_U0R2t8c'; 
+    mapboxgl.accessToken = window.APP_CONFIG?.MAPBOX_TOKEN || '';
+
+    const GOOGLE_API_KEY = window.APP_CONFIG?.GOOGLE_API_KEY || '';
     const TILESET_ID = 'molis726.e2wnkps0vmcp';
     const LAYER_NAME = '50905ca5cfefa9f9db2c';
 
@@ -524,6 +533,8 @@
         { label: 'Magnolia', keyword: 'Magnolia', color: '#ccff33' }
     ];
 
+    const LEAVES_DIR = 'leaves/';
+
     const SPECIES_ICON_FILES = [
         { key: 'Ginkgo', file: 'ginko.svg' },
         { key: 'Platanus', file: 'platanus.svg' },
@@ -542,6 +553,10 @@
         { key: 'Ulmus', file: 'ulmus.svg' },
         { key: 'Magnolia', file: 'magnolia.svg' }
     ];
+
+    function getLeafSvgPath(filename) {
+        return LEAVES_DIR + filename;
+    }
 
     let activeGenera = treeCatalog.map(t => t.keyword);
     let currentBorough = 'All';
@@ -746,7 +761,7 @@
                 };
             });
         };
-        iconFiles.forEach(item => loadCustomIcon(item.key + '-icon', item.file));
+        iconFiles.forEach(item => loadCustomIcon(item.key + '-icon', getLeafSvgPath(item.file)));
 
         const cC=document.createElement('canvas');cC.width=32;cC.height=32;const ctxC=cC.getContext('2d');
         ctxC.fillStyle='#ffffff';ctxC.beginPath();ctxC.arc(16,16,12,0,Math.PI*2);ctxC.fill();
@@ -1101,7 +1116,7 @@
         }
         
         const leafImg = document.getElementById('fs-leaf-icon');
-        leafImg.onerror = function() { this.src = 'maple.svg'; };
+        leafImg.onerror = function() { this.src = getLeafSvgPath('maple.svg'); };
         leafImg.src = getSpeciesIconSvg(species);
 
         document.getElementById('fs-addr-text').innerText = "Locating...";
@@ -1587,9 +1602,9 @@
 
     function getSpeciesIconSvg(speciesName) {
         for (const item of SPECIES_ICON_FILES) {
-            if (speciesName.includes(item.key)) return item.file;
+            if (speciesName.includes(item.key)) return getLeafSvgPath(item.file);
         }
-        return 'maple.svg';
+        return getLeafSvgPath('maple.svg');
     }
 </script>
 </body>
