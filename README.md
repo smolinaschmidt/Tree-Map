@@ -7,4 +7,4 @@ Interactive visualization of New York City’s street tree canopy, built using o
 Preview
 ------
 
-
+![Project Preview](gif.gif)
