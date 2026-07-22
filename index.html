@@ -12,6 +12,35 @@
     body { margin: 0; padding: 0; background-color: #FDFCF6; font-family: 'Inter', sans-serif; overflow: hidden; color: #333; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; background-color: #FDFCF6; }
 
+    #map-error {
+        position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+        max-width: 520px; width: calc(100% - 40px); z-index: 25;
+        background: rgba(183, 28, 28, 0.94); color: #fff; padding: 14px 18px;
+        border-radius: 4px; font-size: 12px; line-height: 1.5; display: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+    #map-error.visible { display: block; }
+    #map-error strong { display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    #map-loading {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        z-index: 10005; background: rgba(255, 255, 255, 0.96); padding: 24px 28px;
+        border-radius: 4px; border: 1px solid #e0e0e0; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        text-align: center; min-width: 260px;
+    }
+    #map-loading.hidden { display: none; }
+    #map-loading-spinner {
+        width: 28px; height: 28px; margin: 0 auto 12px;
+        border: 3px solid #e0e0e0; border-top-color: #333; border-radius: 50%;
+        animation: map-loading-spin 0.8s linear infinite;
+    }
+    @keyframes map-loading-spin { to { transform: rotate(360deg); } }
+    #map-loading strong {
+        display: block; font-size: 11px; font-weight: 700; color: #222;
+        text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    #map-loading p { margin: 0; font-size: 12px; color: #666; }
+
     /* --- MENÚ SUPERIOR --- */
     #top-bar {
         position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
@@ -42,9 +71,44 @@
         display: flex; flex-direction: column; overflow: hidden;
     }
 
-    .header { padding: 20px; border-bottom: 1px solid #eee; flex-shrink: 0; }
-    h2 { margin: 0; font-size: 16px; font-weight: 700; color: #222; text-transform: uppercase; letter-spacing: 1px; }
+    .header { padding: 20px; border-bottom: 1px solid #eee; flex-shrink: 0; overflow: visible; }
+    .header-title-row {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    h2 { margin: 0; font-size: 16px; font-weight: 700; color: #222; text-transform: uppercase; letter-spacing: 1px; flex: 1; }
     p.sub { margin: 5px 0 0; font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+
+    .info-trigger { position: relative; flex-shrink: 0; }
+    .info-icon {
+        display: flex; align-items: center; justify-content: center;
+        width: 18px; height: 18px; border: 1.5px solid #999; border-radius: 50%;
+        font-size: 11px; font-weight: 600; font-style: italic; font-family: Georgia, serif;
+        color: #999; cursor: help; line-height: 1; transition: 0.2s;
+    }
+    .info-trigger:hover .info-icon { border-color: #666; color: #666; }
+    .info-tooltip {
+        position: absolute; top: calc(100% + 10px); right: 0; width: 280px;
+        background: #fff; border: 1px solid #e0e0e0; border-radius: 4px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12); padding: 16px;
+        box-sizing: border-box;
+        font-size: 12px; color: #555; line-height: 1.55; text-transform: none;
+        letter-spacing: 0; font-weight: 400; z-index: 30;
+        opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.2s, visibility 0.2s;
+    }
+    .info-tooltip strong {
+        display: block; font-size: 11px; font-weight: 700; color: #222;
+        text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    .info-tooltip p { margin: 0 0 10px; }
+    .info-tooltip ul { margin: 0; padding: 0; list-style: none; }
+    .info-tooltip li {
+        display: flex; gap: 8px; margin-bottom: 5px;
+    }
+    .info-tooltip li::before {
+        content: "•"; flex-shrink: 0; color: #999;
+    }
+    .info-tooltip li:last-child { margin-bottom: 0; }
+    .info-trigger:hover .info-tooltip { opacity: 1; visibility: visible; }
 
     .layer-group { border-bottom: 1px solid #eee; }
     .layer-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; cursor: pointer; transition: 0.2s; }
@@ -132,6 +196,13 @@
         background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee; 
         text-align: left; display: flex; justify-content: space-between; align-items: center; 
     }
+    .fs-data-box.tall {
+        grid-column: 1 / -1;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .fs-data-box.tall .fs-value { text-align: left; line-height: 1.35; }
     .fs-label { font-size: 9px; color: #888; text-transform: uppercase; font-weight: 700; }
     .fs-value { font-size: 13px; font-weight: 600; color: #333; }
     
@@ -139,7 +210,7 @@
         display: flex; align-items: center; gap: 15px; background: #f4f4f4; 
         padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; 
     }
-    .fs-leaf-img { width: 45px; height: 45px; object-fit: contain; mix-blend-mode: multiply; filter: contrast(1.1); }
+    .fs-leaf-img { width: 45px; height: 45px; object-fit: contain; }
     
     .fs-btn-wiki { 
         display: block; width: 100%; text-align: center; padding: 12px; border-radius: 8px; 
@@ -149,12 +220,81 @@
     .fs-btn-wiki:hover { background: #ddd; }
 
     #fs-body { flex: 1; position: relative; width: 100%; height: 100%; }
-    #fs-pano { width: 100%; height: 100%; }
+    #fs-pano { width: 100%; height: 100%; position: relative; }
+    .fs-loading {
+        color: #fff; display: flex; align-items: center; justify-content: center;
+        height: 100%; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .fs-fallback-label {
+        position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.55); color: #fff; padding: 8px 14px;
+        font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+        text-transform: uppercase; border-radius: 4px; pointer-events: none; z-index: 2;
+    }
+
+    /* --- WELCOME POPUP --- */
+    #zoom-popup {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.45); z-index: 10010;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+    #zoom-popup.hidden { display: none; }
+    .zoom-popup-card {
+        background: #fff; padding: 32px 36px; border-radius: 4px;
+        border: 1px solid #e0e0e0; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        max-width: 360px; text-align: center;
+    }
+    .zoom-popup-card h3 {
+        margin: 0 0 12px; font-size: 16px; font-weight: 700; color: #222;
+        text-transform: uppercase; letter-spacing: 1px;
+    }
+    .zoom-popup-card p {
+        margin: 0 0 24px; font-size: 14px; color: #666; line-height: 1.5;
+    }
+    .zoom-popup-btn {
+        background: #333; color: #fff; border: none; padding: 10px 28px;
+        font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif;
+        text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer;
+        border-radius: 2px; transition: 0.2s;
+    }
+    .zoom-popup-btn:hover { background: #000; }
 
 </style>
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 </head>
 <body>
+
+<div id="zoom-popup">
+    <div class="zoom-popup-card">
+        <h3>Welcome</h3>
+        <p>Zoom in and out to explore the map. Scroll or pinch to navigate.</p>
+        <button class="zoom-popup-btn" type="button" id="zoom-popup-btn">Got it</button>
+    </div>
+</div>
+<script>
+    (function initWelcomePopup() {
+        const WELCOME_KEY = 'nycForestryMapWelcomeDismissed_v2';
+        const popup = document.getElementById('zoom-popup');
+        const btn = document.getElementById('zoom-popup-btn');
+        if (!popup) return;
+
+        if (localStorage.getItem(WELCOME_KEY)) {
+            popup.classList.add('hidden');
+        } else {
+            popup.classList.remove('hidden');
+        }
+
+        window.closeZoomPopup = function closeZoomPopup() {
+            localStorage.setItem(WELCOME_KEY, '1');
+            popup.classList.add('hidden');
+            if (typeof window.refreshTreeLoadingOverlay === 'function') {
+                window.refreshTreeLoadingOverlay();
+            }
+        };
+
+        if (btn) btn.addEventListener('click', window.closeZoomPopup);
+    })();
+</script>
 
 <div id="fullscreen-overlay">
     
@@ -183,13 +323,25 @@
                 </div>
             </div>
             <div class="fs-data-grid">
+                <div class="fs-data-box tall">
+                    <span class="fs-label">Species</span>
+                    <span id="fs-species" class="fs-value">—</span>
+                </div>
                 <div class="fs-data-box">
                     <span class="fs-label">Health</span>
-                    <span id="fs-health" class="fs-value">Good</span>
+                    <span id="fs-health" class="fs-value">—</span>
                 </div>
                 <div class="fs-data-box">
                     <span class="fs-label">Diameter</span>
-                    <span id="fs-dbh" class="fs-value">0"</span>
+                    <span id="fs-dbh" class="fs-value">—</span>
+                </div>
+                <div class="fs-data-box">
+                    <span class="fs-label">Added</span>
+                    <span id="fs-created" class="fs-value">—</span>
+                </div>
+                <div class="fs-data-box">
+                    <span class="fs-label">Last Update</span>
+                    <span id="fs-updated" class="fs-value">—</span>
                 </div>
             </div>
             <a id="fs-wiki-link" href="#" target="_blank" class="fs-btn-wiki">Wikipedia Info</a>
@@ -213,7 +365,24 @@
 
 <div id="sidebar">
     <div class="header">
-        <h2>NYC Forestry Map</h2>
+        <div class="header-title-row">
+            <h2>NYC Forestry Map</h2>
+            <div class="info-trigger">
+                <span class="info-icon" aria-hidden="true">i</span>
+                <div class="info-tooltip">
+                    <strong>About this project</strong>
+                    <p>An interactive map of New York City's street trees, built from official forestry data and styled as an architectural site plan.</p>
+                    <ul>
+                        <li>Zoom and pan to explore — species icons appear as you zoom in.</li>
+                        <li>Filter by borough using the top menu.</li>
+                        <li>Toggle species with the colored chips below.</li>
+                        <li>Turn map layers (parks, water, buildings) on or off.</li>
+                        <li>Switch to 3D for an isometric view.</li>
+                        <li>Click any tree to open Street View and see its details.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
         <p class="sub">Architectural View</p>
     </div>
     
@@ -261,15 +430,80 @@
 </div>
 
 <div id="map"></div>
+<div id="map-loading" class="hidden">
+    <div id="map-loading-spinner"></div>
+    <strong>Loading trees</strong>
+    <p id="map-loading-text">Fetching tree data from NYC Forestry Map…</p>
+</div>
+<div id="map-error"></div>
 
 <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoibW9saXM3MjYiLCJhIjoiY21oeHFrNGxhMDEzYzJrcHk0czJqejVlbCJ9.qLIfPy7V7FfgnEWg6CPQcA';
-    
-    const GOOGLE_API_KEY = 'AIzaSyBG8cgbuB2liZMmiZsepAXMMDYoYxk0cFw'; 
+    mapboxgl.accessToken = 'pk.eyJ1IjoibW9saXM3MjYiLCJhIjoiY21ydmJqanpyMGs4ajM2b2xhaWdmeWxpOCJ9.H3Z_AIsbUY7nrBHAjpwCgA';
 
-    const TILESET_ID = 'molis726.440hoo1z';
-    const LAYER_NAME = 'Forestry_Tree_Points-81mjz0';
-    const COL = { SPECIES: 'GenusSpecies', DBH: 'DBH', HEALTH: 'TPCondition', BOROUGH: 'boroname' };
+    const GOOGLE_API_KEY = 'AIzaSyBHC2qFliSP-yoebniFTlm9kih_U0R2t8c'; 
+    const TILESET_ID = 'molis726.e2wnkps0vmcp';
+    const LAYER_NAME = '50905ca5cfefa9f9db2c';
+
+    const COL = {
+        SPECIES: 'GenusSpecies',
+        DBH: 'DBH',
+        HEALTH: 'TPCondition',
+        STRUCTURE: 'TPStructure',
+        ID: 'OBJECTID',
+        CREATED: 'CreatedDate',
+        UPDATED: 'UpdatedDate',
+        BOROUGH: 'boroname'
+    };
+
+    const BOROUGH_BOXES = {
+        'Manhattan': { west: -74.020, east: -73.907, south: 40.700, north: 40.882 },
+        'Brooklyn': { west: -74.042, east: -73.833, south: 40.570, north: 40.739 },
+        'Queens': { west: -73.962, east: -73.700, south: 40.541, north: 40.800 },
+        'Bronx': { west: -73.933, east: -73.765, south: 40.785, north: 40.915 },
+        'Staten Island': { west: -74.255, east: -74.050, south: 40.496, north: 40.651 }
+    };
+
+    function getBoroughPolygon(name) {
+        const box = BOROUGH_BOXES[name];
+        if (!box) return null;
+        return {
+            type: 'Polygon',
+            coordinates: [[
+                [box.west, box.south],
+                [box.west, box.north],
+                [box.east, box.north],
+                [box.east, box.south],
+                [box.west, box.south]
+            ]]
+        };
+    }
+
+    function getBoroughFilter(boro) {
+        const polygon = getBoroughPolygon(boro);
+        if (!polygon) return null;
+
+        return [
+            'any',
+            ['==', ['get', COL.BOROUGH], boro],
+            [
+                'all',
+                ['!', ['has', COL.BOROUGH]],
+                ['within', polygon]
+            ]
+        ];
+    }
+
+    function getHealthColor(health) {
+        const colors = {
+            'Excellent': '#1b5e20',
+            'Good': '#2e7d32',
+            'Fair': '#f57c00',
+            'Poor': '#d32f2f',
+            'Critical': '#b71c1c',
+            'Unknown': '#888888'
+        };
+        return colors[health] || '#888888';
+    }
 
     const treeCatalog = [
         { label: 'Platanus', keyword: 'Platanus', color: '#8cb369' }, 
@@ -290,23 +524,50 @@
         { label: 'Magnolia', keyword: 'Magnolia', color: '#ccff33' }
     ];
 
-    const leafImages = {
-        'Acer': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Acer_pseudoplatanus_leaf_2.jpg/240px-Acer_pseudoplatanus_leaf_2.jpg',
-        'Quercus': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Quercus_robur_leaf_01.jpg/240px-Quercus_robur_leaf_01.jpg',
-        'Platanus': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Platanus_occidentalis_1.jpg/240px-Platanus_occidentalis_1.jpg',
-        'Ginkgo': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Ginkgo_biloba_Scanned_Leaf.jpg/240px-Ginkgo_biloba_Scanned_Leaf.jpg',
-        'Gleditsia': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Gleditsia_triacanthos_leaf.jpg/240px-Gleditsia_triacanthos_leaf.jpg',
-        'Tilia': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Tilia_cordata_Leaf.jpg/240px-Tilia_cordata_Leaf.jpg',
-        'Zelkova': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Zelkova_serrata_leaf.jpg/240px-Zelkova_serrata_leaf.jpg',
-        'Ulmus': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Ulmus_americana_Leaf.jpg/240px-Ulmus_americana_Leaf.jpg',
-        'Styphnolobium': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Styphnolobium_japonicum_leaf.jpg/240px-Styphnolobium_japonicum_leaf.jpg',
-        'DEFAULT': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Leaf_icon_03.svg/240px-Leaf_icon_03.svg.png'
-    };
+    const SPECIES_ICON_FILES = [
+        { key: 'Ginkgo', file: 'ginko.svg' },
+        { key: 'Platanus', file: 'platanus.svg' },
+        { key: 'Acer', file: 'maple.svg' },
+        { key: 'Quercus', file: 'oak.svg' },
+        { key: 'Gleditsia', file: 'Gleditsia.svg' },
+        { key: 'Tilia', file: 'tilia.svg' },
+        { key: 'Pinus', file: 'pine.svg' },
+        { key: 'Prunus', file: 'cherry.svg' },
+        { key: 'Pyrus', file: 'pyrus.svg' },
+        { key: 'Zelkova', file: 'zelkova.svg' },
+        { key: 'Liquidambar', file: 'liquidambar.svg' },
+        { key: 'Fraxinus', file: 'fraxinus.svg' },
+        { key: 'Metasequoia', file: 'metasequoia.svg' },
+        { key: 'Styphnolobium', file: 'styphnolobium.svg' },
+        { key: 'Ulmus', file: 'ulmus.svg' },
+        { key: 'Magnolia', file: 'magnolia.svg' }
+    ];
 
     let activeGenera = treeCatalog.map(t => t.keyword);
     let currentBorough = 'All';
     let isTreeLayerOn = true;
     let isIsometric = false;
+    let activeTreeSourceLayer = LAYER_NAME;
+    let treesReady = false;
+    const TREE_OCCLUDED_OPACITY = 0.22;
+    const TREE_OCCLUDED_CANOPY_OPACITY = 0.18;
+    let occlusionTrackedIds = new Set();
+    let occlusionUpdateTimer = null;
+    const MAX_OCCLUSION_TREES = 350;
+    const OCCLUSION_DEBOUNCE_MS = 300;
+
+    const treeStickOpacityExpr = [
+        'case',
+        ['boolean', ['feature-state', 'occluded'], false],
+        TREE_OCCLUDED_OPACITY,
+        1
+    ];
+    const treeCanopyOpacityExpr = [
+        'case',
+        ['boolean', ['feature-state', 'occluded'], false],
+        TREE_OCCLUDED_CANOPY_OPACITY,
+        0.95
+    ];
 
     function loadGoogleMapsApi() {
         if (window.google && window.google.maps) return; 
@@ -321,41 +582,158 @@
     const map = new mapboxgl.Map({
         container: 'map',
         style: {
-            "version": 8,
-            "name": "Pencil-Architect",
-            "sources": {
-                "composite": { "url": "mapbox://mapbox.mapbox-streets-v8", "type": "vector" },
-                "nyc-forestry": { "type": "vector", "url": "mapbox://" + TILESET_ID }
+            version: 8,
+            name: 'Pencil-Architect',
+            sources: {
+                composite: { url: 'mapbox://mapbox.mapbox-streets-v8', type: 'vector' },
+                'nyc-forestry': { type: 'vector', url: 'mapbox://' + TILESET_ID, promoteId: COL.ID }
             },
-            "layers": [
-                { "id": "background", "type": "background", "paint": { "background-color": "#FDFCF6" } }
+            layers: [
+                { id: 'background', type: 'background', paint: { 'background-color': '#FDFCF6' } }
             ]
         },
-        center: [-73.970, 40.782], zoom: 11, pitch: 0, bearing: 0
+        center: [-73.970, 40.782],
+        zoom: 11,
+        pitch: 0,
+        bearing: 0
     });
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
+    async function validateMapboxAccess() {
+        try {
+            const res = await fetch(`https://api.mapbox.com/v4/${TILESET_ID}.json?secure&access_token=${mapboxgl.accessToken}`);
+            const data = await res.json().catch(() => ({}));
+
+            if (res.status === 401) {
+                hideTreeLoading();
+                showMapError(
+                    `<strong>Token de Mapbox inválido</strong>` +
+                    `El token en <code>mapboxgl.accessToken</code> fue rechazado (401). ` +
+                    `Ve a <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener">account.mapbox.com/access-tokens</a>, ` +
+                    `copia un token público con scope <em>tiles:read</em> y pégalo en index.html.`
+                );
+                return;
+            }
+
+            if (res.status === 403) {
+                hideTreeLoading();
+                showMapError(
+                    `<strong>Acceso denegado al tileset</strong>` +
+                    `Mapbox respondió 403 para <code>${TILESET_ID}</code>. ` +
+                    `Revisa que el tileset esté publicado en tu cuenta, que el token tenga <em>tiles:read</em>, ` +
+                    `y que no haya restricciones de URL que bloqueen <code>localhost</code>.`
+                );
+                return;
+            }
+
+            if (!res.ok) {
+                hideTreeLoading();
+                showMapError(`<strong>Error de Mapbox</strong>${data.message || res.statusText}`);
+                return;
+            }
+
+            const vectorLayers = (data.vector_layers || []).map(layer => layer.id);
+            if (vectorLayers.length && !vectorLayers.includes(LAYER_NAME)) {
+                hideTreeLoading();
+                showMapError(
+                    `<strong>Source layer incorrecto</strong>` +
+                    `El tileset no tiene una capa llamada <code>${LAYER_NAME}</code>. ` +
+                    `Capas disponibles: <code>${vectorLayers.join(', ')}</code>. ` +
+                    `Actualiza <code>LAYER_NAME</code> en index.html.`
+                );
+            }
+        } catch (err) {
+            hideTreeLoading();
+            showMapError(`<strong>No se pudo verificar Mapbox</strong>${err.message}`);
+        }
+    }
+
+    validateMapboxAccess();
+
+    function showMapError(html) {
+        const el = document.getElementById('map-error');
+        el.innerHTML = html;
+        el.classList.add('visible');
+    }
+
+    function hideMapError() {
+        document.getElementById('map-error').classList.remove('visible');
+    }
+
+    function showTreeLoading(message) {
+        const el = document.getElementById('map-loading');
+        if (!el) return;
+        if (message) document.getElementById('map-loading-text').innerText = message;
+        el.classList.remove('hidden');
+    }
+
+    function hideTreeLoading() {
+        document.getElementById('map-loading')?.classList.add('hidden');
+    }
+
+    function markTreesReady() {
+        treesReady = true;
+        hideTreeLoading();
+    }
+
+    window.refreshTreeLoadingOverlay = function refreshTreeLoadingOverlay() {
+        if (treesReady) {
+            hideTreeLoading();
+            return;
+        }
+        showTreeLoading('Fetching tree data from NYC Forestry Map…');
+    };
+
+    window.isTreesReady = function isTreesReady() {
+        return treesReady;
+    };
+
+    if (localStorage.getItem('nycForestryMapWelcomeDismissed_v2')) {
+        window.refreshTreeLoadingOverlay();
+    }
+
+    function verifyTreeDataLoaded() {
+        const rendered = map.queryRenderedFeatures({ layers: ['trees-points'] }).length;
+        const sourceFeatures = map.querySourceFeatures('nyc-forestry');
+        if (rendered > 0 || sourceFeatures.length > 0) {
+            hideMapError();
+            markTreesReady();
+            return;
+        }
+
+        const source = map.getSource('nyc-forestry');
+        const availableLayers = source?.vectorLayerIds || [];
+        hideTreeLoading();
+        showMapError(
+            `<strong>Tree data not loading</strong>` +
+            `Mapbox tileset <code>${TILESET_ID}</code> returned no features.` +
+            (availableLayers.length ? ` Available layers: ${availableLayers.join(', ')}.` : '') +
+            ` Check that the tileset is published, the source layer name is correct, and your Mapbox token has <em>tiles:read</em> scope with no URL restrictions blocking localhost.`
+        );
+    }
+
+    map.on('error', (e) => {
+        const msg = e.error?.message || String(e.error || e);
+        if (/401|Invalid Token/i.test(msg)) {
+            hideTreeLoading();
+            showMapError(
+                `<strong>Token de Mapbox inválido</strong>` +
+                `Actualiza <code>mapboxgl.accessToken</code> en index.html con un token público válido (<em>tiles:read</em>).`
+            );
+            return;
+        }
+        if (/403|Forbidden|Unauthorized|tile/i.test(msg)) {
+            hideTreeLoading();
+            showMapError(
+                `<strong>Mapbox access error</strong>` +
+                `Could not load map tiles. Create a public token at account.mapbox.com with <em>tiles:read</em> scope and paste it in index.html.`
+            );
+        }
+    });
 
     map.on('load', () => {
 
-        const iconFiles = [
-            { key: 'Ginkgo',      file: 'ginko.svg' },
-            { key: 'Platanus',    file: 'platanus.svg' },
-            { key: 'Acer',        file: 'maple.svg' },
-            { key: 'Quercus',     file: 'oak.svg' },
-            { key: 'Gleditsia',   file: 'Gleditsia.svg' },
-            { key: 'Tilia',       file: 'tilia.svg' },
-            { key: 'Pinus',       file: 'pine.svg' },
-            { key: 'Prunus',      file: 'cherry.svg' },
-            { key: 'Pyrus',       file: 'pyrus.svg' },
-            { key: 'Zelkova',     file: 'zelkova.svg' },
-            { key: 'Liquidambar', file: 'liquidambar.svg' },
-            { key: 'Fraxinus',    file: 'fraxinus.svg' },
-            { key: 'Metasequoia', file: 'metasequoia.svg' },
-            { key: 'Styphnolobium', file: 'styphnolobium.svg' },
-            { key: 'Ulmus',       file: 'ulmus.svg' },
-            { key: 'Magnolia',    file: 'magnolia.svg' }
-        ];
+        const iconFiles = SPECIES_ICON_FILES;
 
         const loadCustomIcon = (name, url) => {
             fetch(url).then(r=>r.ok?r.text():'').then(svg=>{
@@ -379,22 +757,21 @@
         ctxS.fillStyle=grd;ctxS.fillRect(0,0,20,80);
         map.addImage('tree-stick', {width:20,height:80,data:ctxS.getImageData(0,0,20,80).data}, {sdf:true});
 
-        // LAYERS 
-        map.addLayer({ 'id': 'custom-parks', 'type': 'fill', 'source': 'composite', 'source-layer': 'landuse', 'filter': ['==', 'class', 'park'], 'paint': { 'fill-color': '#E6E6E6', 'fill-opacity': 1 } });
-        map.addLayer({ 'id': 'custom-water', 'type': 'fill', 'source': 'composite', 'source-layer': 'water', 'paint': { 'fill-color': '#a2d9ff', 'fill-opacity': 1 } });
-        map.addLayer({ 'id': 'custom-buildings', 'type': 'fill', 'source': 'composite', 'source-layer': 'building', 'paint': { 'fill-color': '#d9d9d9', 'fill-opacity': 0.8, 'fill-outline-color': '#bdbdbd' } });
+        map.addLayer({ id: 'custom-parks', type: 'fill', source: 'composite', 'source-layer': 'landuse', filter: ['==', 'class', 'park'], paint: { 'fill-color': '#E6E6E6', 'fill-opacity': 1 } });
+        map.addLayer({ id: 'custom-water', type: 'fill', source: 'composite', 'source-layer': 'water', paint: { 'fill-color': '#a2d9ff', 'fill-opacity': 1 } });
+        map.addLayer({ id: 'custom-buildings', type: 'fill', source: 'composite', 'source-layer': 'building', paint: { 'fill-color': '#d9d9d9', 'fill-opacity': 0.8, 'fill-outline-color': '#bdbdbd' } });
         map.addLayer({
-            'id': 'custom-buildings-3d',
-            'type': 'fill-extrusion',
-            'source': 'composite',
+            id: 'custom-buildings-3d',
+            type: 'fill-extrusion',
+            source: 'composite',
             'source-layer': 'building',
-            'minzoom': 13,
-            'layout': { 'visibility': 'none' },
-            'paint': {
-                'fill-extrusion-color': '#ececec', 
+            minzoom: 13,
+            layout: { visibility: 'none' },
+            paint: {
+                'fill-extrusion-color': '#ececec',
                 'fill-extrusion-height': ['coalesce', ['get', 'height'], 10],
                 'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
-                'fill-extrusion-opacity': 0.5 
+                'fill-extrusion-opacity': 0.5
             }
         });
 
@@ -403,7 +780,7 @@
             colorExpr.push(['in', t.keyword, ['get', COL.SPECIES]]);
             colorExpr.push(t.color);
         });
-        colorExpr.push('#60993E'); 
+        colorExpr.push('#60993E');
 
         const iconLogic = ['case'];
         iconFiles.forEach(item => {
@@ -412,63 +789,120 @@
         });
         iconLogic.push('circle-icon');
 
-        map.addLayer({
-            'id': 'trees-points',
-            'type': 'symbol',
-            'source': 'nyc-forestry',
-            'source-layer': LAYER_NAME,
-            'layout': {
-                'icon-image': [
-                    'step', ['zoom'], 'circle-icon', 14, 
-                    iconLogic                            
-                ],
-                'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.3, 14, 0.6, 18, 1.0],
-                'icon-allow-overlap': true,
-                'icon-anchor': 'center'
-            },
-            'paint': { 'icon-color': colorExpr, 'icon-opacity': 0.8 }
+        let treeLayersAdded = false;
+
+        function addTreeLayers(sourceLayer) {
+            if (treeLayersAdded) return;
+            treeLayersAdded = true;
+            activeTreeSourceLayer = sourceLayer;
+
+            map.addLayer({
+                id: 'trees-points',
+                type: 'symbol',
+                source: 'nyc-forestry',
+                'source-layer': sourceLayer,
+                layout: {
+                    'icon-image': ['step', ['zoom'], 'circle-icon', 14, iconLogic],
+                    'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.3, 14, 0.6, 18, 1.0],
+                    'icon-allow-overlap': true,
+                    'icon-anchor': 'center'
+                },
+                paint: { 'icon-color': colorExpr, 'icon-opacity': 0.8 }
+            });
+
+            map.addLayer({
+                id: 'trees-sticks',
+                type: 'symbol',
+                source: 'nyc-forestry',
+                'source-layer': sourceLayer,
+                layout: {
+                    visibility: 'none',
+                    'icon-image': 'tree-stick',
+                    'icon-allow-overlap': true,
+                    'icon-anchor': 'bottom',
+                    'icon-pitch-alignment': 'viewport',
+                    'icon-size': 0.75
+                },
+                paint: { 'icon-color': colorExpr, 'icon-opacity': 1 }
+            });
+
+            map.addLayer({
+                id: 'trees-canopy',
+                type: 'symbol',
+                source: 'nyc-forestry',
+                'source-layer': sourceLayer,
+                layout: {
+                    visibility: 'none',
+                    'icon-image': iconLogic,
+                    'icon-allow-overlap': true,
+                    'icon-anchor': 'bottom',
+                    'icon-offset': [0, -1.6],
+                    'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.4, 14, 0.8, 18, 1.2]
+                },
+                paint: { 'icon-color': colorExpr, 'icon-opacity': 0.95 }
+            });
+
+            buildChipGrid();
+            setupInteractions();
+            applyMapFilters();
+            markTreesReady();
+            map.once('idle', () => setTimeout(verifyTreeDataLoaded, 1500));
+        }
+
+        function initTreeLayersFromSource() {
+            const source = map.getSource('nyc-forestry');
+            const availableLayers = source?.vectorLayerIds || [];
+            if (!availableLayers.length) return false;
+
+            const sourceLayer = availableLayers.includes(LAYER_NAME) ? LAYER_NAME : availableLayers[0];
+            addTreeLayers(sourceLayer);
+            return true;
+        }
+
+        map.on('sourcedata', (e) => {
+            if (e.sourceId === 'nyc-forestry' && e.isSourceLoaded) initTreeLayersFromSource();
         });
 
-        map.addLayer({
-            'id': 'trees-sticks',
-            'type': 'symbol',
-            'source': 'nyc-forestry',
-            'source-layer': LAYER_NAME,
-            'layout': { 'visibility': 'none', 'icon-image': 'tree-stick', 'icon-allow-overlap': true, 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-size': 0.75 },
-            'paint': { 'icon-color': colorExpr, 'icon-opacity': 1 }
-        });
-
-        map.addLayer({
-            'id': 'trees-canopy',
-            'type': 'symbol',
-            'source': 'nyc-forestry',
-            'source-layer': LAYER_NAME,
-            'layout': {
-                'visibility': 'none',
-                'icon-image': iconLogic,
-                'icon-allow-overlap': true,
-                'icon-anchor': 'bottom',
-                'icon-offset': [0, -1.6],
-                'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.4, 14, 0.8, 18, 1.2]
-            },
-            'paint': { 'icon-color': colorExpr, 'icon-opacity': 0.95 }
-        });
-
-        buildChipGrid();
-        setupInteractions();
+        setTimeout(() => {
+            if (!treeLayersAdded) {
+                addTreeLayers(LAYER_NAME);
+                map.once('idle', () => setTimeout(verifyTreeDataLoaded, 1500));
+            }
+        }, 8000);
     });
 
     // --- WIKIPEDIA LOGIC ---
+    async function findWikipediaArticle(speciesName) {
+        const query = speciesName.split('-')[0].trim();
+        if (!query) return null;
+
+        try {
+            const opensearchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=1&namespace=0&format=json&origin=*`;
+            const opensearchRes = await fetch(opensearchUrl);
+            const opensearchData = await opensearchRes.json();
+            if (opensearchData[1] && opensearchData[1][0]) return opensearchData[1][0];
+
+            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
+            const searchRes = await fetch(searchUrl);
+            const searchData = await searchRes.json();
+            if (searchData.query?.search?.[0]?.title) return searchData.query.search[0].title;
+
+            return null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function wikipediaPageUrl(title) {
+        return `https://en.wikipedia.org/wiki/${title.replace(/ /g, '_')}`;
+    }
+
     async function fetchWikipediaImage(fullString) {
         try {
-            let cleanName = fullString.split('-')[0].trim();
-            let words = cleanName.split(' ');
-            if (words.length >= 2) {
-                cleanName = `${words[0]}_${words[1]}`;
-            } else {
-                cleanName = words[0]; 
-            }
-            const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${cleanName}`;
+            const title = await findWikipediaArticle(fullString);
+            if (!title) return null;
+
+            const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`;
             const response = await fetch(url);
             if (!response.ok) return null;
             const data = await response.json();
@@ -480,27 +914,182 @@
         }
     }
 
-    let panorama;
-    let autoRotateInterval;
+    function formatDbh(dbh) {
+        if (dbh === null || dbh === undefined || dbh === '' || Number(dbh) === 0) return 'N/A';
+        return `${dbh}"`;
+    }
 
-    async function openFullscreen(lat, lon, species, dbh, health) {
+    function formatUpdatedDate(value) {
+        if (value === null || value === undefined || value === '') return 'N/A';
+        const normalized = String(value).trim().replace(' ', 'T').replace(/(\.\d{3})\d+$/, '$1');
+        const date = new Date(normalized);
+        if (Number.isNaN(date.getTime())) return String(value).split(' ')[0] || 'N/A';
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    let panorama;
+    let rotateAnimationId = null;
+    let isUserControllingStreetView = false;
+    let rotatePhase = 0;
+    let lastRotateTime = null;
+    let currentTreeLocation = null;
+    const ROTATE_AMPLITUDE = 5;
+    const ROTATE_PERIOD = 32000;
+    let fallbackMap = null;
+    let fallbackRotateId = null;
+
+    function findStreetViewPanorama(location) {
+        return new Promise((resolve) => {
+            const svService = new google.maps.StreetViewService();
+            const attempts = [
+                { radius: 80, source: google.maps.StreetViewSource.OUTDOOR },
+                { radius: 150 },
+                { radius: 300 }
+            ];
+            let i = 0;
+
+            function tryNext() {
+                if (i >= attempts.length) {
+                    resolve(null);
+                    return;
+                }
+                const attempt = attempts[i++];
+                const options = {
+                    location,
+                    radius: attempt.radius,
+                    preference: google.maps.StreetViewPreference.NEAREST
+                };
+                if (attempt.source) options.source = attempt.source;
+
+                svService.getPanorama(options, (data, status) => {
+                    if (status === google.maps.StreetViewStatus.OK) resolve(data);
+                    else tryNext();
+                });
+            }
+
+            tryNext();
+        });
+    }
+
+    function startMapboxOrbitFallback(lon, lat, panoDiv) {
+        stopAutoRotate();
+        stopFallbackOrbit();
+        panorama = null;
+        currentTreeLocation = null;
+
+        panoDiv.innerHTML = `
+            <div id="fallback-map" style="width:100%;height:100%"></div>
+            <div class="fs-fallback-label">Street View unavailable · 3D map orbit</div>
+        `;
+
+        fallbackMap = new mapboxgl.Map({
+            container: 'fallback-map',
+            style: 'mapbox://styles/mapbox/satellite-streets-v12',
+            center: [lon, lat],
+            zoom: 18.5,
+            pitch: 62,
+            bearing: -25,
+            antialias: true
+        });
+
+        fallbackMap.on('load', () => {
+            fallbackMap.addSource('selected-tree', {
+                type: 'geojson',
+                data: { type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] } }
+            });
+            fallbackMap.addLayer({
+                id: 'selected-tree-glow',
+                type: 'circle',
+                source: 'selected-tree',
+                paint: {
+                    'circle-radius': 20,
+                    'circle-color': '#66bb6a',
+                    'circle-opacity': 0.35,
+                    'circle-blur': 0.7
+                }
+            });
+            fallbackMap.addLayer({
+                id: 'selected-tree-dot',
+                type: 'circle',
+                source: 'selected-tree',
+                paint: {
+                    'circle-radius': 7,
+                    'circle-color': '#2e7d32',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#fff'
+                }
+            });
+            startFallbackOrbit(lon, lat);
+        });
+
+        fallbackMap.on('mousedown', stopFallbackOrbit);
+    }
+
+    function startFallbackOrbit(lon, lat) {
+        if (!fallbackMap) return;
+        stopFallbackOrbit();
+
+        const amplitude = 22;
+        const period = 26000;
+        const startTime = performance.now();
+        const baseBearing = fallbackMap.getBearing();
+
+        function animate() {
+            if (!fallbackMap) return;
+            const elapsed = performance.now() - startTime;
+            const offset = amplitude * Math.sin((elapsed / period) * Math.PI * 2);
+            fallbackMap.setBearing(baseBearing + offset);
+            fallbackMap.setCenter([lon, lat]);
+            fallbackRotateId = requestAnimationFrame(animate);
+        }
+
+        fallbackRotateId = requestAnimationFrame(animate);
+    }
+
+    function stopFallbackOrbit() {
+        if (fallbackRotateId) {
+            cancelAnimationFrame(fallbackRotateId);
+            fallbackRotateId = null;
+        }
+    }
+
+    async function openFullscreen(lat, lon, props) {
+        const species = props[COL.SPECIES] || 'Unknown';
+        const dbh = props[COL.DBH];
+        const health = props[COL.HEALTH] || 'N/A';
+        const created = props[COL.CREATED];
+        const updated = props[COL.UPDATED];
         const overlay = document.getElementById('fullscreen-overlay');
         const panoDiv = document.getElementById('fs-pano');
         const sidebar = document.getElementById('fs-sidebar');
         
         sidebar.classList.remove('open');
         overlay.style.display = 'flex';
+        stopAutoRotate();
+        stopFallbackOrbit();
+        if (fallbackMap) {
+            fallbackMap.remove();
+            fallbackMap = null;
+        }
+        panorama = null;
+        isUserControllingStreetView = false;
+        rotatePhase = 0;
+        lastRotateTime = null;
+        panoDiv.innerHTML = '<div class="fs-loading">Loading view...</div>';
 
-        document.getElementById('fs-tree-name').innerText = species;
+        document.getElementById('fs-tree-name').innerText = species.split(' - ')[0].trim() || species;
+        document.getElementById('fs-species').innerText = species;
         document.getElementById('fs-health').innerText = health;
         const healthEl = document.getElementById('fs-health');
-        healthEl.style.color = health === 'Good' ? '#2e7d32' : (health === 'Poor' ? '#d32f2f' : '#f57c00');
-        
-        document.getElementById('fs-dbh').innerText = dbh + '"';
+        healthEl.style.color = getHealthColor(health);
+
+        document.getElementById('fs-dbh').innerText = formatDbh(dbh);
+        document.getElementById('fs-created').innerText = formatUpdatedDate(created);
+        document.getElementById('fs-updated').innerText = formatUpdatedDate(updated);
         document.getElementById('fs-coords').innerText = `Lat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}`;
-        
-        const linkName = species.split('-')[0].trim().replace(' ', '_');
-        document.getElementById('fs-wiki-link').href = `https://en.wikipedia.org/wiki/${linkName}`;
+
+        const wikiTitle = await findWikipediaArticle(species);
+        document.getElementById('fs-wiki-link').href = wikiTitle ? wikipediaPageUrl(wikiTitle) : '#';
 
         const photoImg = document.getElementById('fs-tree-photo');
         photoImg.src = 'https://upload.wikimedia.org/wikipedia/commons/c/ca/1x1.png'; // Clear
@@ -512,11 +1101,8 @@
         }
         
         const leafImg = document.getElementById('fs-leaf-icon');
-        const leafUrl = getLeafImage(species);
-        leafImg.onerror = function() { 
-            this.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Leaf_icon_03.svg/100px-Leaf_icon_03.svg.png'; 
-        };
-        leafImg.src = leafUrl;
+        leafImg.onerror = function() { this.src = 'maple.svg'; };
+        leafImg.src = getSpeciesIconSvg(species);
 
         document.getElementById('fs-addr-text').innerText = "Locating...";
         try {
@@ -531,37 +1117,41 @@
             document.getElementById('fs-addr-text').innerText = "Address unavailable";
         }
 
-        if (!window.google || !window.google.maps) return;
+        if (!window.google || !window.google.maps) {
+            startMapboxOrbitFallback(lon, lat, panoDiv);
+            return;
+        }
 
-        const treeLocation = new google.maps.LatLng(lat, lon);
-        const svService = new google.maps.StreetViewService();
-        
-        svService.getPanorama({
-            location: treeLocation,
-            radius: 50,
-            preference: google.maps.StreetViewPreference.NEAREST,
-            source: google.maps.StreetViewSource.OUTDOOR
-        }, (data, status) => {
-            if (status === google.maps.StreetViewStatus.OK) {
-                const carLocation = data.location.latLng;
-                const heading = google.maps.geometry.spherical.computeHeading(carLocation, treeLocation);
+        currentTreeLocation = new google.maps.LatLng(lat, lon);
+        const data = await findStreetViewPanorama(currentTreeLocation);
 
-                panorama = new google.maps.StreetViewPanorama(panoDiv, {
-                    pano: data.location.pano,
-                    pov: { heading: heading, pitch: 20 },
-                    zoom: 1,
-                    disableDefaultUI: true,
-                    clickToGo: false
-                });
+        if (data) {
+            panoDiv.innerHTML = '';
+            const carLocation = data.location.latLng;
+            const { heading, pitch } = getTreePov(carLocation);
 
-                startAutoRotate();
+            panorama = new google.maps.StreetViewPanorama(panoDiv, {
+                pano: data.location.pano,
+                pov: { heading: heading, pitch: pitch },
+                zoom: 1,
+                disableDefaultUI: true,
+                clickToGo: true,
+                scrollwheel: true,
+                addressControl: false,
+                linksControl: true,
+                panControl: false,
+                zoomControl: true,
+                enableCloseButton: false,
+                fullscreenControl: false,
+                motionTracking: false
+            });
 
-                panorama.addListener('mousedown', stopAutoRotate);
+            bindStreetViewControls();
+            startAutoRotate();
+            return;
+        }
 
-            } else {
-                panoDiv.innerHTML = '<div style="color:white; padding:50px; text-align:center;">No Street View available.</div>';
-            }
-        });
+        startMapboxOrbitFallback(lon, lat, panoDiv);
     }
 
     function toggleFullscreenSidebar() {
@@ -569,27 +1159,110 @@
         sidebar.classList.toggle('open');
     }
 
+    function getTreePov(pos) {
+        const heading = google.maps.geometry.spherical.computeHeading(pos, currentTreeLocation);
+        const distance = google.maps.geometry.spherical.computeDistanceBetween(pos, currentTreeLocation);
+        const pitch = Math.min(32, Math.max(22, Math.atan2(9, Math.max(distance, 4)) * (180 / Math.PI)));
+        return { heading, pitch };
+    }
+
+    function normalizeHeading(angle) {
+        let a = ((angle % 360) + 360) % 360;
+        if (a > 180) a -= 360;
+        return a;
+    }
+
+    function syncRotatePhaseFromCurrentPov() {
+        if (!panorama || !currentTreeLocation) return;
+        const pos = panorama.getPosition();
+        if (!pos) return;
+
+        const { heading: baseHeading } = getTreePov(pos);
+        const currentOffset = normalizeHeading(panorama.getPov().heading - baseHeading);
+        if (Math.abs(currentOffset) <= ROTATE_AMPLITUDE) {
+            rotatePhase = Math.asin(currentOffset / ROTATE_AMPLITUDE);
+        }
+    }
+
+    function bindStreetViewControls() {
+        if (!panorama) return;
+
+        panorama.addListener('mousedown', () => { isUserControllingStreetView = true; });
+        panorama.addListener('touchstart', () => { isUserControllingStreetView = true; });
+        panorama.addListener('mouseup', () => {
+            isUserControllingStreetView = false;
+            syncRotatePhaseFromCurrentPov();
+        });
+        panorama.addListener('touchend', () => {
+            isUserControllingStreetView = false;
+            syncRotatePhaseFromCurrentPov();
+        });
+        panorama.addListener('position_changed', () => {
+            isUserControllingStreetView = true;
+            setTimeout(() => {
+                isUserControllingStreetView = false;
+                syncRotatePhaseFromCurrentPov();
+            }, 700);
+        });
+    }
+
     function startAutoRotate() {
-        if (autoRotateInterval) clearInterval(autoRotateInterval);
-        autoRotateInterval = setInterval(() => {
-            if (!panorama) return;
-            const pov = panorama.getPov();
-            pov.heading += 0.15; // Slow rotation
-            panorama.setPov(pov);
-        }, 50);
+        if (!panorama || !currentTreeLocation) return;
+        stopAutoRotate();
+
+        lastRotateTime = performance.now();
+        syncRotatePhaseFromCurrentPov();
+
+        function animate(now) {
+            if (!panorama || !currentTreeLocation) return;
+
+            const pos = panorama.getPosition();
+            if (!pos) {
+                rotateAnimationId = requestAnimationFrame(animate);
+                return;
+            }
+
+            if (isUserControllingStreetView) {
+                syncRotatePhaseFromCurrentPov();
+                lastRotateTime = now;
+            } else {
+                const dt = now - lastRotateTime;
+                lastRotateTime = now;
+                rotatePhase += (dt / ROTATE_PERIOD) * Math.PI * 2;
+
+                const { heading, pitch } = getTreePov(pos);
+                const offset = ROTATE_AMPLITUDE * Math.sin(rotatePhase);
+                panorama.setPov({
+                    heading: heading + offset,
+                    pitch: pitch
+                });
+            }
+
+            rotateAnimationId = requestAnimationFrame(animate);
+        }
+
+        rotateAnimationId = requestAnimationFrame(animate);
     }
 
     function stopAutoRotate() {
-        if (autoRotateInterval) {
-            clearInterval(autoRotateInterval);
-            autoRotateInterval = null;
+        if (rotateAnimationId) {
+            cancelAnimationFrame(rotateAnimationId);
+            rotateAnimationId = null;
         }
     }
 
     function closeFullscreen() {
         document.getElementById('fullscreen-overlay').style.display = 'none';
         stopAutoRotate();
-        document.getElementById('fs-pano').innerHTML = ''; 
+        stopFallbackOrbit();
+        isUserControllingStreetView = false;
+        currentTreeLocation = null;
+        panorama = null;
+        if (fallbackMap) {
+            fallbackMap.remove();
+            fallbackMap = null;
+        }
+        document.getElementById('fs-pano').innerHTML = '';
     }
 
     function setupInteractions() {
@@ -602,7 +1275,7 @@
                 if (!isTreeLayerOn) return;
                 const p = e.features[0].properties;
                 const coords = e.features[0].geometry.coordinates; 
-                openFullscreen(coords[1], coords[0], p[COL.SPECIES] || 'Unknown', p[COL.DBH] || 0, p[COL.HEALTH] || 'N/A');
+                openFullscreen(coords[1], coords[0], p);
             });
         });
 
@@ -613,6 +1286,7 @@
             if (isIsometric) {
                 map.setLayoutProperty('custom-buildings', 'visibility', 'none');
                 map.setLayoutProperty('custom-buildings-3d', 'visibility', visibility);
+                scheduleTreeOcclusionUpdate();
             } else {
                 map.setLayoutProperty('custom-buildings', 'visibility', visibility);
                 map.setLayoutProperty('custom-buildings-3d', 'visibility', 'none');
@@ -635,10 +1309,13 @@
     }
 
     function applyMapFilters() {
-        if (!isTreeLayerOn) return;
+        if (!isTreeLayerOn || !map.getLayer('trees-points')) return;
         const searchVal = document.getElementById('species-search').value.trim();
         const filters = ['all'];
-        if (currentBorough !== 'All') filters.push(['==', COL.BOROUGH, currentBorough]);
+        if (currentBorough !== 'All') {
+            const boroughFilter = getBoroughFilter(currentBorough);
+            if (boroughFilter) filters.push(boroughFilter);
+        }
         if (searchVal.length > 0) {
             filters.push(['!=', ['index-of', searchVal.toUpperCase(), ['upcase', ['get', COL.SPECIES]]], -1]);
         } else {
@@ -652,17 +1329,173 @@
         }
         map.setFilter('trees-points', filters);
         map.setFilter('trees-sticks', filters);
-        if(map.getLayer('trees-canopy')) map.setFilter('trees-canopy', filters);
+        if (map.getLayer('trees-canopy')) map.setFilter('trees-canopy', filters);
     }
 
     function setBorough(boro, btn) {
         currentBorough = boro;
-        document.querySelectorAll('.b-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#top-bar .b-btn:not(.iso-btn)').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         applyMapFilters(); 
         const locations = { 'Manhattan': [-73.97, 40.78], 'Brooklyn': [-73.95, 40.65], 'Queens': [-73.85, 40.73], 'Bronx': [-73.87, 40.85], 'Staten Island': [-74.15, 40.57] };
         if(locations[boro]) map.flyTo({ center: locations[boro], zoom: 14, pitch: isIsometric ? 60 : 0 });
         else map.flyTo({ center: [-73.97, 40.78], zoom: 11, pitch: isIsometric ? 60 : 0 });
+    }
+
+    function getTreeFeatureId(feature) {
+        if (feature.id !== undefined && feature.id !== null) return feature.id;
+        if (feature.properties?.[COL.ID] !== undefined) return feature.properties[COL.ID];
+        if (feature.properties?.GlobalID !== undefined) return feature.properties.GlobalID;
+        const coords = feature.geometry?.coordinates;
+        if (!coords) return null;
+        return `${coords[0].toFixed(6)}_${coords[1].toFixed(6)}`;
+    }
+
+    function setTreeFeatureState(id, state) {
+        if (id === null || id === undefined) return;
+        try {
+            map.setFeatureState({ source: 'nyc-forestry', sourceLayer: activeTreeSourceLayer, id }, state);
+        } catch (e) { /* ignore missing promoteId on sparse tiles */ }
+    }
+
+    function getBuildingScreenBounds() {
+        const buildings = map.queryRenderedFeatures({ layers: ['custom-buildings-3d'] });
+        const bounds = [];
+
+        buildings.forEach(building => {
+            const ring = building.geometry?.type === 'Polygon'
+                ? building.geometry.coordinates[0]
+                : building.geometry?.coordinates?.[0]?.[0];
+            if (!ring) return;
+
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
+
+            ring.forEach(coord => {
+                const point = map.project(coord);
+                minX = Math.min(minX, point.x);
+                minY = Math.min(minY, point.y);
+                maxX = Math.max(maxX, point.x);
+                maxY = Math.max(maxY, point.y);
+            });
+
+            bounds.push({ minX, minY, maxX, maxY });
+        });
+
+        return bounds;
+    }
+
+    function pointNearBuildingBounds(x, y, bounds, padding = 6) {
+        return bounds.some(b =>
+            x >= b.minX - padding && x <= b.maxX + padding &&
+            y >= b.minY - padding && y <= b.maxY + padding
+        );
+    }
+
+    function isTreeOccludedByBuilding(feature, buildingBounds) {
+        const coords = feature.geometry.coordinates;
+        const base = map.project(coords);
+
+        if (!pointNearBuildingBounds(base.x, base.y, buildingBounds)) return false;
+
+        const hits = map.queryRenderedFeatures([base.x, base.y], {
+            layers: ['custom-buildings-3d', 'trees-sticks', 'trees-canopy']
+        });
+        return hits.length > 0 && hits[0].layer.id === 'custom-buildings-3d';
+    }
+
+    function updateTreeOcclusion() {
+        if (!isIsometric || !map.getLayer('trees-sticks') || map.isMoving()) return;
+        if (!document.getElementById('chk-buildings').checked) {
+            clearTreeOcclusion();
+            return;
+        }
+
+        const buildingBounds = getBuildingScreenBounds();
+        if (!buildingBounds.length) {
+            clearTreeOcclusion();
+            return;
+        }
+
+        const trees = map.queryRenderedFeatures({ layers: ['trees-sticks'] });
+        const seen = new Map();
+        trees.forEach(feature => {
+            const id = getTreeFeatureId(feature);
+            if (id !== null) seen.set(id, feature);
+        });
+
+        let treeList = Array.from(seen.entries());
+        if (treeList.length > MAX_OCCLUSION_TREES) {
+            const center = map.project(map.getCenter());
+            treeList.sort(([, a], [, b]) => {
+                const pa = map.project(a.geometry.coordinates);
+                const pb = map.project(b.geometry.coordinates);
+                const da = (pa.x - center.x) ** 2 + (pa.y - center.y) ** 2;
+                const db = (pb.x - center.x) ** 2 + (pb.y - center.y) ** 2;
+                return da - db;
+            });
+            treeList = treeList.slice(0, MAX_OCCLUSION_TREES);
+        }
+
+        const nextOccluded = new Set();
+        treeList.forEach(([id, feature]) => {
+            if (isTreeOccludedByBuilding(feature, buildingBounds)) nextOccluded.add(id);
+        });
+
+        occlusionTrackedIds.forEach(id => {
+            if (!nextOccluded.has(id)) setTreeFeatureState(id, { occluded: false });
+        });
+        nextOccluded.forEach(id => {
+            if (!occlusionTrackedIds.has(id)) setTreeFeatureState(id, { occluded: true });
+        });
+
+        occlusionTrackedIds = nextOccluded;
+    }
+
+    function clearTreeOcclusion() {
+        occlusionTrackedIds.forEach(id => setTreeFeatureState(id, { occluded: false }));
+        occlusionTrackedIds.clear();
+    }
+
+    function scheduleTreeOcclusionUpdate() {
+        if (!isIsometric) return;
+        if (occlusionUpdateTimer) clearTimeout(occlusionUpdateTimer);
+        occlusionUpdateTimer = setTimeout(() => {
+            occlusionUpdateTimer = null;
+            updateTreeOcclusion();
+        }, OCCLUSION_DEBOUNCE_MS);
+    }
+
+    function enableTreeOcclusionListeners(on) {
+        const events = ['moveend', 'zoomend', 'rotateend', 'pitchend'];
+        events.forEach(evt => {
+            if (on) map.on(evt, scheduleTreeOcclusionUpdate);
+            else map.off(evt, scheduleTreeOcclusionUpdate);
+        });
+    }
+
+    function apply3DViewDepth() {
+        if (!map.getLayer('custom-buildings-3d')) return;
+
+        if (isIsometric) {
+            map.moveLayer('custom-buildings-3d');
+            map.setPaintProperty('trees-sticks', 'icon-opacity', treeStickOpacityExpr);
+            map.setPaintProperty('trees-canopy', 'icon-opacity', treeCanopyOpacityExpr);
+            enableTreeOcclusionListeners(true);
+            scheduleTreeOcclusionUpdate();
+        } else {
+            map.moveLayer('custom-buildings-3d', 'trees-points');
+            map.setPaintProperty('trees-sticks', 'icon-opacity', 1);
+            map.setPaintProperty('trees-canopy', 'icon-opacity', 0.95);
+            enableTreeOcclusionListeners(false);
+            if (occlusionUpdateTimer) {
+                clearTimeout(occlusionUpdateTimer);
+                occlusionUpdateTimer = null;
+            }
+            clearTreeOcclusion();
+        }
     }
 
     function toggleIsometric(btn) {
@@ -679,6 +1512,7 @@
                 map.setLayoutProperty('trees-sticks', 'visibility', 'visible');
                 map.setLayoutProperty('trees-canopy', 'visibility', 'visible');
             }
+            apply3DViewDepth();
         } else {
             map.flyTo({ pitch: 0, bearing: 0 });
             if (document.getElementById('chk-buildings').checked) {
@@ -690,6 +1524,7 @@
                 map.setLayoutProperty('trees-sticks', 'visibility', 'none');
                 map.setLayoutProperty('trees-canopy', 'visibility', 'none');
             }
+            apply3DViewDepth();
         }
     }
 
@@ -750,11 +1585,11 @@
         applyMapFilters();
     }
 
-    function getLeafImage(speciesName) {
-        for (const [genus, url] of Object.entries(leafImages)) {
-            if (speciesName.includes(genus)) return url;
+    function getSpeciesIconSvg(speciesName) {
+        for (const item of SPECIES_ICON_FILES) {
+            if (speciesName.includes(item.key)) return item.file;
         }
-        return leafImages['DEFAULT'];
+        return 'maple.svg';
     }
 </script>
 </body>
