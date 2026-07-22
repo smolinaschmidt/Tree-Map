@@ -451,7 +451,8 @@
 
     const GOOGLE_API_KEY = window.APP_CONFIG?.GOOGLE_API_KEY || '';
     const TILESET_ID = 'molis726.e2wnkps0vmcp';
-    const LAYER_NAME = '50905ca5cfefa9f9db2c';
+    const TREE_SOURCE_ID = 'arboles-source';
+    const LAYER_NAME = 'TreeMap';
 
     const COL = {
         SPECIES: 'GenusSpecies',
@@ -600,8 +601,7 @@
             version: 8,
             name: 'Pencil-Architect',
             sources: {
-                composite: { url: 'mapbox://mapbox.mapbox-streets-v8', type: 'vector' },
-                'nyc-forestry': { type: 'vector', url: 'mapbox://' + TILESET_ID, promoteId: COL.ID }
+                composite: { url: 'mapbox://mapbox.mapbox-streets-v8', type: 'vector' }
             },
             layers: [
                 { id: 'background', type: 'background', paint: { 'background-color': '#FDFCF6' } }
@@ -654,7 +654,8 @@
             }
 
             const vectorLayers = (data.vector_layers || []).map(layer => layer.id);
-            if (vectorLayers.length && !vectorLayers.includes(LAYER_NAME)) {
+            const layerLabels = (data.vector_layers || []).flatMap(layer => [layer.id, layer.source_name].filter(Boolean));
+            if (layerLabels.length && !layerLabels.includes(LAYER_NAME)) {
                 hideTreeLoading();
                 showMapError(
                     `<strong>Source layer incorrecto</strong>` +
@@ -718,7 +719,7 @@
         const rendered = map.queryRenderedFeatures({ layers: ['trees-points'] }).length;
         let sourceFeatures = [];
         try {
-            sourceFeatures = map.querySourceFeatures('nyc-forestry', {
+            sourceFeatures = map.querySourceFeatures(TREE_SOURCE_ID, {
                 sourceLayer: activeTreeSourceLayer
             });
         } catch (e) { /* source still loading */ }
@@ -739,7 +740,7 @@
             return;
         }
 
-        const source = map.getSource('nyc-forestry');
+        const source = map.getSource(TREE_SOURCE_ID);
         const availableLayers = source?.vectorLayerIds || [];
         hideTreeLoading();
         showMapError(
@@ -756,7 +757,7 @@
 
     function isForestryTilesetAuthError(msg) {
         const text = String(msg || '');
-        const mentionsForestry = text.includes(TILESET_ID) || text.includes('nyc-forestry');
+        const mentionsForestry = text.includes(TILESET_ID) || text.includes(TREE_SOURCE_ID);
         return mentionsForestry && /(?:\b403\b|Forbidden|Not Authorized)/i.test(text);
     }
 
@@ -809,6 +810,12 @@
         ctxS.fillStyle=grd;ctxS.fillRect(0,0,20,80);
         map.addImage('tree-stick', {width:20,height:80,data:ctxS.getImageData(0,0,20,80).data}, {sdf:true});
 
+        map.addSource(TREE_SOURCE_ID, {
+            type: 'vector',
+            url: 'mapbox://' + TILESET_ID,
+            promoteId: COL.ID
+        });
+
         map.addLayer({ id: 'custom-parks', type: 'fill', source: 'composite', 'source-layer': 'landuse', filter: ['==', 'class', 'park'], paint: { 'fill-color': '#E6E6E6', 'fill-opacity': 1 } });
         map.addLayer({ id: 'custom-water', type: 'fill', source: 'composite', 'source-layer': 'water', paint: { 'fill-color': '#a2d9ff', 'fill-opacity': 1 } });
         map.addLayer({ id: 'custom-buildings', type: 'fill', source: 'composite', 'source-layer': 'building', paint: { 'fill-color': '#d9d9d9', 'fill-opacity': 0.8, 'fill-outline-color': '#bdbdbd' } });
@@ -843,6 +850,11 @@
 
         let treeLayersAdded = false;
 
+        function resolveTreeSourceLayer(availableLayers) {
+            if (availableLayers.includes(LAYER_NAME)) return LAYER_NAME;
+            return availableLayers[0] || LAYER_NAME;
+        }
+
         function addTreeLayers(sourceLayer) {
             if (treeLayersAdded) return;
             treeLayersAdded = true;
@@ -851,7 +863,7 @@
             map.addLayer({
                 id: 'trees-points',
                 type: 'symbol',
-                source: 'nyc-forestry',
+                source: TREE_SOURCE_ID,
                 'source-layer': sourceLayer,
                 layout: {
                     'icon-image': ['step', ['zoom'], 'circle-icon', 14, iconLogic],
@@ -865,7 +877,7 @@
             map.addLayer({
                 id: 'trees-sticks',
                 type: 'symbol',
-                source: 'nyc-forestry',
+                source: TREE_SOURCE_ID,
                 'source-layer': sourceLayer,
                 layout: {
                     visibility: 'none',
@@ -881,7 +893,7 @@
             map.addLayer({
                 id: 'trees-canopy',
                 type: 'symbol',
-                source: 'nyc-forestry',
+                source: TREE_SOURCE_ID,
                 'source-layer': sourceLayer,
                 layout: {
                     visibility: 'none',
@@ -902,22 +914,24 @@
         }
 
         function initTreeLayersFromSource() {
-            const source = map.getSource('nyc-forestry');
+            const source = map.getSource(TREE_SOURCE_ID);
             const availableLayers = source?.vectorLayerIds || [];
             if (!availableLayers.length) return false;
 
-            const sourceLayer = availableLayers.includes(LAYER_NAME) ? LAYER_NAME : availableLayers[0];
+            const sourceLayer = resolveTreeSourceLayer(availableLayers);
             addTreeLayers(sourceLayer);
             return true;
         }
 
         map.on('sourcedata', (e) => {
-            if (e.sourceId === 'nyc-forestry' && e.isSourceLoaded) initTreeLayersFromSource();
+            if (e.sourceId === TREE_SOURCE_ID && e.isSourceLoaded) initTreeLayersFromSource();
         });
 
         setTimeout(() => {
             if (!treeLayersAdded) {
-                addTreeLayers(LAYER_NAME);
+                const source = map.getSource(TREE_SOURCE_ID);
+                const availableLayers = source?.vectorLayerIds || [];
+                addTreeLayers(resolveTreeSourceLayer(availableLayers));
                 map.once('idle', () => setTimeout(verifyTreeDataLoaded, 1500));
             }
         }, 8000);
@@ -1406,7 +1420,7 @@
     function setTreeFeatureState(id, state) {
         if (id === null || id === undefined) return;
         try {
-            map.setFeatureState({ source: 'nyc-forestry', sourceLayer: activeTreeSourceLayer, id }, state);
+            map.setFeatureState({ source: TREE_SOURCE_ID, sourceLayer: activeTreeSourceLayer, id }, state);
         } catch (e) { /* ignore missing promoteId on sparse tiles */ }
     }
 
