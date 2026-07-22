@@ -750,9 +750,19 @@
         );
     }
 
+    function isMapboxTokenError(msg) {
+        return /401|Invalid Token|Not Authorized - Invalid Token/i.test(String(msg || ''));
+    }
+
+    function isForestryTilesetAuthError(msg) {
+        const text = String(msg || '');
+        const mentionsForestry = text.includes(TILESET_ID) || text.includes('nyc-forestry');
+        return mentionsForestry && /(?:\b403\b|Forbidden|Not Authorized)/i.test(text);
+    }
+
     map.on('error', (e) => {
         const msg = e.error?.message || String(e.error || e);
-        if (/401|Invalid Token/i.test(msg)) {
+        if (isMapboxTokenError(msg)) {
             hideTreeLoading();
             showMapError(
                 `<strong>Token de Mapbox inválido</strong>` +
@@ -760,7 +770,7 @@
             );
             return;
         }
-        if (/403|Forbidden|Unauthorized|tile/i.test(msg)) {
+        if (isForestryTilesetAuthError(msg)) {
             hideTreeLoading();
             showMapError(
                 `<strong>Acceso denegado al tileset</strong>` +
@@ -768,7 +778,9 @@
                 `Este tileset es privado: el token debe ser de la misma cuenta Mapbox (<code>molis726</code>). ` +
                 mapboxSetupHint()
             );
+            return;
         }
+        console.warn('Mapbox GL error:', msg);
     });
 
     map.on('load', () => {
