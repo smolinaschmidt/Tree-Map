@@ -359,7 +359,6 @@
     <button class="b-btn" onclick="setBorough('Brooklyn', this)">Brooklyn</button>
     <button class="b-btn" onclick="setBorough('Queens', this)">Queens</button>
     <button class="b-btn" onclick="setBorough('Bronx', this)">Bronx</button>
-    <button class="b-btn" onclick="setBorough('Staten Island', this)">Staten Island</button>
     <button class="b-btn iso-btn" onclick="toggleIsometric(this)" style="margin-left: 10px;">3D</button>
 </div>
 
@@ -450,9 +449,9 @@
     mapboxgl.accessToken = window.APP_CONFIG?.MAPBOX_TOKEN || '';
 
     const GOOGLE_API_KEY = window.APP_CONFIG?.GOOGLE_API_KEY || '';
-    const TILESET_ID = 'molis726.e2wnkps0vmcp';
+    const TILESET_ID = 'molis726.mvaljpgcd1fx';
     const TREE_SOURCE_ID = 'arboles-source';
-    const LAYER_NAME = 'TreeMap';
+    const LAYER_NAME = 'a37e0d762e0d734163fa';
 
     const COL = {
         SPECIES: 'GenusSpecies',
@@ -486,6 +485,12 @@
                 [box.west, box.south]
             ]]
         };
+    }
+
+    function getExcludedTreesFilter() {
+        const polygon = getBoroughPolygon('Staten Island');
+        if (!polygon) return null;
+        return ['!', ['within', polygon]];
     }
 
     function getBoroughFilter(boro) {
@@ -812,8 +817,7 @@
 
         map.addSource(TREE_SOURCE_ID, {
             type: 'vector',
-            url: 'mapbox://' + TILESET_ID,
-            promoteId: COL.ID
+            url: 'mapbox://' + TILESET_ID
         });
 
         map.addLayer({ id: 'custom-parks', type: 'fill', source: 'composite', 'source-layer': 'landuse', filter: ['==', 'class', 'park'], paint: { 'fill-color': '#E6E6E6', 'fill-opacity': 1 } });
@@ -1378,6 +1382,8 @@
         if (!isTreeLayerOn || !map.getLayer('trees-points')) return;
         const searchVal = document.getElementById('species-search').value.trim();
         const filters = ['all'];
+        const excluded = getExcludedTreesFilter();
+        if (excluded) filters.push(excluded);
         if (currentBorough !== 'All') {
             const boroughFilter = getBoroughFilter(currentBorough);
             if (boroughFilter) filters.push(boroughFilter);
@@ -1403,7 +1409,7 @@
         document.querySelectorAll('#top-bar .b-btn:not(.iso-btn)').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         applyMapFilters(); 
-        const locations = { 'Manhattan': [-73.97, 40.78], 'Brooklyn': [-73.95, 40.65], 'Queens': [-73.85, 40.73], 'Bronx': [-73.87, 40.85], 'Staten Island': [-74.15, 40.57] };
+        const locations = { 'Manhattan': [-73.97, 40.78], 'Brooklyn': [-73.95, 40.65], 'Queens': [-73.85, 40.73], 'Bronx': [-73.87, 40.85] };
         if(locations[boro]) map.flyTo({ center: locations[boro], zoom: 14, pitch: isIsometric ? 60 : 0 });
         else map.flyTo({ center: [-73.97, 40.78], zoom: 11, pitch: isIsometric ? 60 : 0 });
     }
