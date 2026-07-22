@@ -278,14 +278,14 @@
         const btn = document.getElementById('zoom-popup-btn');
         if (!popup) return;
 
-        if (localStorage.getItem(WELCOME_KEY)) {
+        if (sessionStorage.getItem(WELCOME_KEY)) {
             popup.classList.add('hidden');
         } else {
             popup.classList.remove('hidden');
         }
 
         window.closeZoomPopup = function closeZoomPopup() {
-            localStorage.setItem(WELCOME_KEY, '1');
+            sessionStorage.setItem(WELCOME_KEY, '1');
             popup.classList.add('hidden');
             if (typeof window.refreshTreeLoadingOverlay === 'function') {
                 window.refreshTreeLoadingOverlay();
@@ -709,7 +709,7 @@
         return treesReady;
     };
 
-    if (localStorage.getItem('nycForestryMapWelcomeDismissed_v2')) {
+    if (sessionStorage.getItem('nycForestryMapWelcomeDismissed_v2')) {
         window.refreshTreeLoadingOverlay();
     }
 
