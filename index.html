@@ -614,7 +614,19 @@
     });
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
+    function mapboxSetupHint() {
+        const host = location.hostname || 'localhost';
+        return (
+            `El token va en <code>config.js</code> (local) o en el secret <code>MAPBOX_TOKEN</code> de GitHub (producción). ` +
+            `Debe ser de la cuenta <code>molis726</code>, con scope <em>tiles:read</em>, ` +
+            `y sin restricciones de URL que bloqueen <code>${host}</code> ` +
+            `(añade <code>https://sofiams.com/*</code> y <code>http://localhost:*</code> si usas restricciones).`
+        );
+    }
+
     async function validateMapboxAccess() {
+        if (!mapboxgl.accessToken || mapboxgl.accessToken.includes('YOUR_')) return;
+
         try {
             const res = await fetch(`https://api.mapbox.com/v4/${TILESET_ID}.json?secure&access_token=${mapboxgl.accessToken}`);
             const data = await res.json().catch(() => ({}));
@@ -623,27 +635,21 @@
                 hideTreeLoading();
                 showMapError(
                     `<strong>Token de Mapbox inválido</strong>` +
-                    `El token en <code>mapboxgl.accessToken</code> fue rechazado (401). ` +
-                    `Ve a <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener">account.mapbox.com/access-tokens</a>, ` +
-                    `copia un token público con scope <em>tiles:read</em> y pégalo en index.html.`
+                    `Mapbox rechazó el token (401). ${mapboxSetupHint()}`
                 );
                 return;
             }
 
+            // El tileset es privado: un 403 aquí suele ser token de otra cuenta,
+            // restricciones de URL, o un bloqueador del navegador — no detenemos el mapa
+            // hasta confirmar que los tiles tampoco cargan.
             if (res.status === 403) {
-                hideTreeLoading();
-                showMapError(
-                    `<strong>Acceso denegado al tileset</strong>` +
-                    `Mapbox respondió 403 para <code>${TILESET_ID}</code>. ` +
-                    `Revisa que el tileset esté publicado en tu cuenta, que el token tenga <em>tiles:read</em>, ` +
-                    `y que no haya restricciones de URL que bloqueen <code>localhost</code>.`
-                );
+                console.warn('Mapbox tileset metadata returned 403:', data.message || res.statusText);
                 return;
             }
 
             if (!res.ok) {
-                hideTreeLoading();
-                showMapError(`<strong>Error de Mapbox</strong>${data.message || res.statusText}`);
+                console.warn('Mapbox tileset metadata check failed:', data.message || res.statusText);
                 return;
             }
 
@@ -658,8 +664,7 @@
                 );
             }
         } catch (err) {
-            hideTreeLoading();
-            showMapError(`<strong>No se pudo verificar Mapbox</strong>${err.message}`);
+            console.warn('Mapbox tileset metadata check failed:', err.message);
         }
     }
 
@@ -707,12 +712,30 @@
         window.refreshTreeLoadingOverlay();
     }
 
-    function verifyTreeDataLoaded() {
+    function verifyTreeDataLoaded(attempt = 0) {
+        if (!map.getLayer('trees-points')) return;
+
         const rendered = map.queryRenderedFeatures({ layers: ['trees-points'] }).length;
-        const sourceFeatures = map.querySourceFeatures('nyc-forestry');
+        let sourceFeatures = [];
+        try {
+            sourceFeatures = map.querySourceFeatures('nyc-forestry', {
+                sourceLayer: activeTreeSourceLayer
+            });
+        } catch (e) { /* source still loading */ }
+
         if (rendered > 0 || sourceFeatures.length > 0) {
             hideMapError();
             markTreesReady();
+            return;
+        }
+
+        if (attempt < 5) {
+            setTimeout(() => verifyTreeDataLoaded(attempt + 1), 2000);
+            return;
+        }
+
+        if (map.getZoom() < 13) {
+            hideMapError();
             return;
         }
 
@@ -721,9 +744,9 @@
         hideTreeLoading();
         showMapError(
             `<strong>Tree data not loading</strong>` +
-            `Mapbox tileset <code>${TILESET_ID}</code> returned no features.` +
+            `Mapbox tileset <code>${TILESET_ID}</code> returned no features at this zoom.` +
             (availableLayers.length ? ` Available layers: ${availableLayers.join(', ')}.` : '') +
-            ` Check that the tileset is published, the source layer name is correct, and your Mapbox token has <em>tiles:read</em> scope with no URL restrictions blocking localhost.`
+            ` Check that the tileset is published, the source layer name is correct, and your Mapbox token allows <em>tiles:read</em> from this site (e.g. <code>sofiams.com</code>).`
         );
     }
 
@@ -733,15 +756,17 @@
             hideTreeLoading();
             showMapError(
                 `<strong>Token de Mapbox inválido</strong>` +
-                `Actualiza <code>mapboxgl.accessToken</code> en index.html con un token público válido (<em>tiles:read</em>).`
+                mapboxSetupHint()
             );
             return;
         }
         if (/403|Forbidden|Unauthorized|tile/i.test(msg)) {
             hideTreeLoading();
             showMapError(
-                `<strong>Mapbox access error</strong>` +
-                `Could not load map tiles. Create a public token at account.mapbox.com with <em>tiles:read</em> scope and paste it in index.html.`
+                `<strong>Acceso denegado al tileset</strong>` +
+                `No se pudieron cargar los tiles de <code>${TILESET_ID}</code>. ` +
+                `Este tileset es privado: el token debe ser de la misma cuenta Mapbox (<code>molis726</code>). ` +
+                mapboxSetupHint()
             );
         }
     });
